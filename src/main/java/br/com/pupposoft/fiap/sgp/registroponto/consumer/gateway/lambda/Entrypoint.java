@@ -1,6 +1,5 @@
 package br.com.pupposoft.fiap.sgp.registroponto.consumer.gateway.lambda;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 
 import com.amazonaws.services.lambda.runtime.Context;
@@ -18,9 +17,13 @@ public class Entrypoint implements RequestHandler<Object, ResponseJson> {
 
 	private RegistrarPontoUsecase registrarPontoUsecase;
 	
+	private ObjectMapper objectMapper;
+	
 	public Entrypoint() {
+		objectMapper = new ObjectMapper();
+		objectMapper.findAndRegisterModules();
 		if(System.getenv("IS_UNIT_TEST") == null) {
-			SistemaPontoGateway sistemaPontoGateway = new SistemaPontoHttpRestGateway(new ObjectMapper());
+			SistemaPontoGateway sistemaPontoGateway = new SistemaPontoHttpRestGateway(System.getenv("SISTEMA_PONTO_BASEURL"), new ObjectMapper());
 			registrarPontoUsecase = new RegistrarPontoUsecase(sistemaPontoGateway);
 		}
 	}
@@ -32,14 +35,19 @@ public class Entrypoint implements RequestHandler<Object, ResponseJson> {
 
 		try {
 			
-			//FIXME: transformar "input" em "Ponto"
+			String[] split = input.toString().split("body=");
+			split = split[1].split("},");
 			
-			registrarPontoUsecase.processar(new Ponto(15L, LocalDateTime.now()));//NOSONAR //FIXME
+			String mensagem = split[0]+"}";
+			
+			Ponto ponto = objectMapper.readValue(mensagem, Ponto.class);
+			
+			registrarPontoUsecase.processar(ponto);
 			return new ResponseJson(false, 200, new HashMap<>(), "OK");
 			
 		} catch (Exception e) {
 			e.printStackTrace();
-			return new ResponseJson(false, 500, new HashMap<>(), e.getMessage());
+			throw new RuntimeException(e);//NOSONAR
 		}
 	}
 }
