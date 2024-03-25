@@ -16,24 +16,27 @@ import okhttp3.RequestBody;
 @AllArgsConstructor
 public class SistemaPontoHttpRestGateway implements SistemaPontoGateway {
 
+	private String baseUrl;
+	
 	private ObjectMapper objectMapper;
 	
 	@Override
 	public void registrar(Ponto ponto) {
 		try {
+
 			String messageStr = objectMapper.writeValueAsString(new RequestBodyJson(ponto));
-			
+
 			OkHttpClient client = new OkHttpClient().newBuilder()
 					.build();
 			MediaType mediaType = MediaType.parse("application/json");
 			RequestBody body = RequestBody.create(messageStr, mediaType);
 			Request request = new Request.Builder()
-					.url("http://localhost:8081/pontos")
+					.url( baseUrl + "/pontos")
 					.method("POST", body)
 					.addHeader("Content-Type", "application/json")
 					.build();
 			client.newCall(request).execute();
-			
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new ErroAoAcessarSistemaPontoException();
